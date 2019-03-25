@@ -5,3 +5,5 @@ target/
 *.log
 *.txt
 *.jar
+*.csv
+*.class
