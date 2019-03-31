@@ -8,27 +8,40 @@ import ru.nsu.ccfit.doronin.minesweeper.main.textUI.Events.Observer;
 import javax.swing.text.View;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
-public class ControllerTextUI implements Observer {
+public class ControllerTextUI {
     private Model model;
     private ViewTextUI view;
+    private Long beginTime;
+    private Long endTime;
 
     public ControllerTextUI(Model model, ViewTextUI view) {
         this.model = model;
         this.view = view;
     }
 
-    //Получить сообщение автора игры
-    public String getAuthorsMessage() {
-        return model.getAuthorsMessage();
+    //Запустить таймер
+    private void startTimer() {
+        beginTime = System.currentTimeMillis();
     }
 
-    public void setNamePlayer(String name) {
+    private void finishTimer() {
+        endTime = System.currentTimeMillis();
+    }
+
+    //Получить сообщение автора игры
+    private void showAuthorsMessage() {
+        view.printAbout(model.getAuthorsMessage());
+    }
+
+    private void setNamePlayer(String name) {
         model.setPlayerName(name);
     }
 
     //Получить поле
-    public List<String> getField() {
+    private List<String> getField() {
         Cell[][] field = model.getField();
         List<String> viewField = new ArrayList<>();
 
@@ -61,7 +74,7 @@ public class ControllerTextUI implements Observer {
     }
 
     //Открыть клетку
-    public boolean openCell(String numberStr) {
+    private boolean openCell(String numberStr) {
         int height = model.getHeight();
         int width = model.getWidth();
 
@@ -73,7 +86,7 @@ public class ControllerTextUI implements Observer {
     }
 
     //Установить флаг на клетку
-    public void setFlag(String numberStr) {
+    private void setFlag(String numberStr) {
         int height = model.getHeight();
         int width = model.getWidth();
 
@@ -85,30 +98,33 @@ public class ControllerTextUI implements Observer {
     }
 
     //Перезагрузить поле
-    public void reset() {
+    private void reset() {
         model.reset();
     }
 
-    //Игра Окончена
-    public void GameOver() {
-        model.reset();
-    }
-
-    public void setDifficultEasy(){
+    private void setDifficultEasy() {
         model.setDifficultEasy();
     }
 
-    public void setDifficultNormal(){
+    private void setDifficultNormal() {
         model.setDifficultNormal();
     }
 
-    public void setDifficultHard(){
+    private void setDifficultHard() {
         model.setDifficultHard();
     }
 
-    @Override
-    public void update(String command){
-        switch (command){
+    //Записать новое время
+    private void updateScore() {
+        finishTimer();
+        model.addNewScore((endTime - beginTime) / 1000);
+    }
+
+    public void update(String command) {
+        switch (command) {
+            case "new":
+                startTimer();
+                break;
             case "easy":
                 setDifficultEasy();
                 break;
@@ -118,26 +134,53 @@ public class ControllerTextUI implements Observer {
             case "hard":
                 setDifficultHard();
                 break;
-            case "gameOver":
-                GameOver();
-                break;
             case "reset":
                 reset();
                 break;
+            case "about":
+                showAuthorsMessage();
+                break;
             case "printField":
+                view.printField(getField());
+                break;
+            case "score":
+                view.printScoreTable(model.getScoreTable());
+                break;
+            case "exit":
+                updateScore();
+                model.reset();
+                break;
+            case "closeGame":
+                model.writeScores();
                 break;
         }
     }
 
-    @Override
     public void update(String command, String arg) {
-        switch (command){
-            case "openCell":
-                openCell(arg);
+        switch (command) {
+            case "open":
+                //Если бомба
+                if (!openCell(arg)) {
+                    view.gameOver();
+                    view.printField(getField());
+                    model.reset();
+
+                } else if (model.isWin()) {
+                    updateScore();
+                    model.addNewScore((endTime - beginTime) / 1000);
+                    model.writeScores();
+                    view.showWinMessage((endTime - beginTime) / 1000);
+                    view.printField(getField());
+                    model.reset();
+                }
                 break;
-            case "setFlag":
+            case "flag":
                 setFlag(arg);
+                break;
+            case "name":
+                model.setName(arg);
                 break;
         }
     }
+
 }

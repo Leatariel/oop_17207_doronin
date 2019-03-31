@@ -9,16 +9,15 @@ import java.util.List;
 
 public class ViewTextUI {
 
-    ControllerTextUI controller;
-    private Event event;        //Событие, которое происходит во вьюшке
+    private Event event;                //Событие, которое происходит во вьюшке
+    private boolean continueGame;       //Отвечает за продолдение игры
 
-    public ViewTextUI(ControllerTextUI controller) {
-        this.controller = controller;
+    public ViewTextUI() {
         this.event = new Event();
+        continueGame = true;
     }
 
     public void runMainMenu() {
-        boolean continueGame = true;
         printStartScreen();
         //Начинаем чтение из входного потока
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
@@ -26,22 +25,28 @@ public class ViewTextUI {
                 String comand = reader.readLine().toLowerCase();
                 switch (comand) {
                     case "new":
+                        event.update(comand);
                         runGame(reader);
                         printStartScreen();
+                        continueGame = true;
                         break;
                     case "about":
-                        System.out.println(controller.getAuthorsMessage());
+                        event.update(comand);
+//                        System.out.println(controller.getAuthorsMessage());
                         break;
                     case "name":
                         System.out.println("Введите своё имя:");
                         String name = reader.readLine();
-                        controller.setNamePlayer(name);
+                        event.update(comand, name);
+//                        controller.setNamePlayer(name);
                         break;
                     case "score":
                         //Реализовать score в Model
+                        event.update(comand);
                         break;
                     case "exit":
                         continueGame = false;
+                        event.update("closeGame");
                         break;
                     case "help":
                         printStartScreen();
@@ -51,18 +56,18 @@ public class ViewTextUI {
         } catch (Exception e) {
             System.err.println("*Ошибка*: " + e.getMessage());
         }
-
     }
 
     //Запуск самой игры
     private void runGame(BufferedReader reader) throws Exception {
-        boolean continueGame = true;
+
         String number;
         printGameCommand();
 
         while (continueGame) {
 
-            printField();
+//            printField();
+            event.update("printField");
 
             String comand = reader.readLine().toLowerCase();
 
@@ -71,29 +76,35 @@ public class ViewTextUI {
                 case "open":
                     System.out.println("Какую клетку открыть?");
                     number = reader.readLine();
-                    boolean isBomb = !(controller.openCell(number));
-                    if(isBomb){
-                        continueGame = GameOver();
-                        controller.GameOver();
-                        reader.readLine();
-                    }
+                    event.update(comand, number);
+//                    boolean isBomb = !(controller.openCell(number));
+//                    if(isBomb){
+//                        continueGame = GameOver();
+//                        controller.GameOver();
+//                        reader.readLine();
+//                    }
                     break;
                 case "flag":
                     System.out.println("На какую клетку установить флаг?");
                     number = reader.readLine();
-                    controller.setFlag(number);
+                    event.update(comand, number);
+//                    controller.setFlag(number);
                     break;
                 case "reset":
-                    controller.reset();
+                    event.update(comand);
+//                    controller.reset();
                     break;
                 case "easy":
-                    controller.setDifficultEasy();
+                    event.update(comand);
+//                    controller.setDifficultEasy();
                     break;
                 case "normal":
-                    controller.setDifficultNormal();
+                    event.update(comand);
+//                    controller.setDifficultNormal();
                     break;
                 case "hard":
-                    controller.setDifficultHard();
+                    event.update(comand);
+//                    controller.setDifficultHard();
                     break;
                 case "help":
                     clearScreen();
@@ -101,27 +112,26 @@ public class ViewTextUI {
                     break;
                 case "exit":
                     continueGame = false;
+                    event.update(comand);
                     break;
-
-
             }
         }
     }
 
     //Подписать контроллер
-    public void subsribeObject(Observer controller){
+    public void subscribeObject(ControllerTextUI controller){
         event.subscribe(controller);
     }
 
+    //Напечатать информацию об авторах
     public void printAbout(String str){
         System.out.println(str);
     }
 
     //Конец Игры
-    private boolean GameOver(){
+    public void gameOver(){
         System.out.println("Бомба сделала БУМ!\nВы проиграли!!!\n");
-        printField();
-        return false;
+        continueGame = false;
     }
 
     //Напечатать главное меню
@@ -151,10 +161,13 @@ public class ViewTextUI {
         System.out.println("Посмотреть доступные команды (exit)");
     }
 
+    //Напечатать таблицу с результатами
+    public void printScoreTable(List<String> scoreTable){
+        scoreTable.forEach(n -> System.out.println(n));
+    }
 
     //Напечатать поле с клетками
-    private void printField(){
-        List<String> field = controller.getField();
+    public void printField(List<String> field){
         field.forEach(n-> System.out.print(" " + n));
     }
 
@@ -164,5 +177,10 @@ public class ViewTextUI {
         }
     }
 
+    //Показать сообщение о победе
+    public void showWinMessage(Long time){
+        System.out.println("Поздравляем вас!!! Вы победили!!!\nВаше время: " + time);
+        continueGame = false;
+    }
 
 }

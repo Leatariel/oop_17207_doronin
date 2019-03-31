@@ -1,18 +1,21 @@
 package ru.nsu.ccfit.doronin.minesweeper.main.textUI.Events;
 
 
-public class Event {
-    private Observer observer;
+import ru.nsu.ccfit.doronin.minesweeper.main.textUI.ControllerTextUI;
 
-    public void subscribe(Observer obj){
-        observer = obj;
+public class Event implements Observer {
+    private ControllerTextUI controller;
+
+    public void subscribe(ControllerTextUI obj){
+        controller = obj;
     }
 
+    @Override
     public void update(String command){
-        observer.update(command);
+        controller.update(command);
     }
 
     public void update(String command, String arg){
-
+        controller.update(command, arg);
     }
 }

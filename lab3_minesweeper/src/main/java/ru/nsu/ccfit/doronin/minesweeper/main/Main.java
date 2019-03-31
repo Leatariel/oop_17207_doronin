@@ -1,37 +1,45 @@
 package ru.nsu.ccfit.doronin.minesweeper.main;
 
+import ru.nsu.ccfit.doronin.minesweeper.main.GUI.ControllerGUI;
+import ru.nsu.ccfit.doronin.minesweeper.main.GUI.ViewGUI;
 import ru.nsu.ccfit.doronin.minesweeper.main.textUI.ControllerTextUI;
 import ru.nsu.ccfit.doronin.minesweeper.main.textUI.ViewTextUI;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 
 public class Main {
     public static void main(String[] args) {
 
-//        System.out.println("До запуска таймера");
-//        Long time = System.currentTimeMillis();
-//
-//        Timer t = new Timer();
-//        t.schedule(
-//                new TimerTask() {
-//                    public void run() {
-//                        System.out.println("Timer Event!!!");
-//                        t.cancel();
-//                        t.purge();
-//                    }
-//                },
-//                5000);
-//
-//        System.out.println("После запуска таймера");
+        Model model = new Model();
 
-        Model m = new Model();
-        ControllerTextUI controller = new ControllerTextUI(m);
-        ViewTextUI view = new ViewTextUI(controller);
-        view.subsribeObject(controller);
-        m.setDifficultNormal();
-        view.runMainMenu();
-        System.out.println("Завершение main");
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
+            System.out.println("Добро пожаловать в игру сапёр!");
+            System.out.println("Какую версию игры вы хотите запустить?");
+            System.out.println("1) TUI\n2) GUI");
+
+            String answer = reader.readLine();
+
+            if (answer.equalsIgnoreCase("1")) {
+                ViewTextUI view = new ViewTextUI();
+                ControllerTextUI controller = new ControllerTextUI(model, view);
+                view.subscribeObject(controller);
+                view.runMainMenu();
+            } else if (answer.equalsIgnoreCase("2")) {
+                ViewGUI view = new ViewGUI();
+                ControllerGUI controller = new ControllerGUI(model, view);
+                view.subscribe(controller);
+                view.setVisible(true);
+            }
+
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+
     }
 
-    private static void stop(Long t){
+    private static void stop(Long t) {
         t = t - System.currentTimeMillis();
     }
 }

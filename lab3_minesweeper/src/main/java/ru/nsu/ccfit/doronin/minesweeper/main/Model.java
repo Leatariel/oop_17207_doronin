@@ -1,9 +1,6 @@
 package ru.nsu.ccfit.doronin.minesweeper.main;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
 public class Model {
     public static final int MAX_HEIGHT = 30;
@@ -18,16 +15,23 @@ public class Model {
 
     private String playerName = "default";          //Имя игрока
 
-    private Cell field[][];
+    private Cell field[][];                         //Поле с клетками
+
+    private int maxCountFlag = 10;                  //Максимальное кол-во флагов для конкретного уровня сложности
+    private int curCountFlag = 0;                   //Текущее кол-во установленных флагов
+
+    private int timeForEnd = 10;
+
+    ScoreWorker scoreTable;
 
     Model() {
         field = new Cell[MAX_HEIGHT][MAX_WIDTH];
-
         for (int i = 0; i < MAX_HEIGHT; ++i) {
             for (int j = 0; j < MAX_WIDTH; ++j) {
                 field[i][j] = new Cell();
             }
         }
+        scoreTable = new ScoreWorker();
     }
 
     //Получить текущую высоту поля
@@ -49,25 +53,58 @@ public class Model {
         return width;
     }
 
+    //Получить время, после окочнания которого игра будет завершена с проигрышом
+    public int getTimeforEnd() {
+        return timeForEnd;
+    }
+
     //Задать текущую ширину поля
     public void setWidth(int width) {
         this.width = width;
     }
 
     //Задать имя игрока
-    public void setPlayerName(String name){
+    public void setPlayerName(String name) {
         playerName = name;
     }
 
     //Установить флаг на клетке
-    public void setFlag(int h, int w){
-        field[h][w].setFlag(true);
+    public void setFlag(int h, int w) {
+        if (field[h][w].isFlag()) {
+            field[h][w].setFlag(false);
+            --curCountFlag;
+        } else {
+            if (curCountFlag != maxCountFlag) {
+                field[h][w].setFlag(true);
+                ++curCountFlag;
+            }
+        }
     }
-    
+
+    //Установить имя игрока
+    public void setName(String name){
+        scoreTable.setNamePlayer(name);
+    }
+
+    //Дать таблицу с результатами
+    public List<String> getScoreTable(){
+     return scoreTable.getScoreTable();
+    }
+
+    //Записать время
+    public void addNewScore(Long time){
+        scoreTable.addNewScore(time);
+    }
+
+    //Записать таблицу результатов в файл
+    public void writeScores(){
+        scoreTable.writeScoreTableToFile();
+    }
+
     //Пользователь открыл (нажал) клетку
     //Возвращает true, если всё хорошо, false - если бомба
     public boolean openCell(int h, int w) {
-        if(!field[h][w].isFlag()) {
+        if (!field[h][w].isFlag() && !field[h][w].isOpen()) {
             field[h][w].setOpen(true);
             //Если первое нажатие, расставляем бомбы
             if (firstRound) {
@@ -82,9 +119,11 @@ public class Model {
                 openAllCells();
                 return false;
             }
-            openEmptyCells(h, w);
+            if(0 == field[h][w].getCountNeighbourBomb()) {
+                openEmptyCells(h, w);
+            }
         }
-        return  true;
+        return true;
     }
 
     //Открывает все ячейки
@@ -107,13 +146,13 @@ public class Model {
     }
 
     //Получить сообщение автора
-    public String getAuthorsMessage(){
+    public String getAuthorsMessage() {
         String message = "Эта игра была разработана бедным студентом из группы 17207 ФИТ НГУ.\n"
-                +"Идея игры была нагло скомунизжена автором с игры Сапёр для Windows.\n"
-                +"Игра создавалась при финансовой, моральной, котлетной и гуляшной поддержке мамы автора.\n"
-                +"Особую благодарность хочу высказать своим соседям по комнате, которые на протяжении всего\n"
-                +"цикла разработки пытались свести автора в могилу своей игрой на гитаре, визгом и ужасным чувством юмора.\n"
-                +"Все права успешно сворованы, приятной игры =)";
+                + "Идея игры была нагло скомунизжена автором с игры Сапёр для Windows.\n"
+                + "Игра создавалась при финансовой, моральной, котлетной и гуляшной поддержке мамы автора.\n"
+                + "Особую благодарность хочу высказать своим соседям по комнате, которые на протяжении всего\n"
+                + "цикла разработки пытались свести автора в могилу своей игрой на гитаре, визгом и ужасным чувством юмора.\n"
+                + "Все права успешно сворованы, приятной игры =)";
         return message;
     }
 
@@ -168,7 +207,7 @@ public class Model {
             for (int j = -1; j < 2; j++) {
                 if ((h + i >= 0) && (h + i < height) && (w + j >= 0) && (w + j < width)) {
                     if (!field[h + i][w + j].isOpen() && !field[h + i][w + j].isBomb()) {
-                        if(!field[h + i][w + j].isFlag()) {
+                        if (!field[h + i][w + j].isFlag()) {
                             field[h + i][w + j].setOpen(true);
                             //Если это пустая клетка, не число, то вызываю рекурсию
                             if (field[h + i][w + j].getCountNeighbourBomb() == 0) {
@@ -182,47 +221,42 @@ public class Model {
     }
 
     //Установить лёгкий уровень сложности
-    public void setDifficultEasy(){
+    public void setDifficultEasy() {
         reset();
-        height = 8;
-        width = 8;
+        height = 10;
+        width = 10;
         countBomb = 10;
     }
+
     //Установить лёгкий уровень сложности
-    public void setDifficultNormal(){
+    public void setDifficultNormal() {
         reset();
-        height = 16;
-        width = 16;
-        countBomb = 40;
+        height = 15;
+        width = 15;
+        countBomb = 50;
     }
+
     //Установить лёгкий уровень сложности
-    public void setDifficultHard(){
+    public void setDifficultHard() {
         reset();
-        height = 16;
-        width = 30;
+        height = 20;
+        width = 20;
         countBomb = 100;
     }
-    //Напечатать поле
-    public void printField() {
-        for (int i = 0; i < height; ++i) {
-            for (int j = 0; j < width; ++j) {
-                //Если закрыта
-                if (!field[i][j].isOpen()) {
-                    //Если стоит флаг
-                    if (field[i][j].isFlag()) {
-                        System.out.print("1");
-                    } else {
-                        System.out.print("O");
-                    }
-                    //Если открыта и бомба
-                } else if (field[i][j].isBomb()) {
-                    System.out.print("*");
-                    //Открыта и без бомбы
-                } else {
-                    System.out.print(field[i][j].getCountNeighbourBomb());
+
+    //Проверить, победа ли
+    public boolean isWin(){
+        int countBomb = 0;
+        int countOpened = 0;
+        for(int i = 0; i < height; ++i){
+            for(int j = 0; j < width; ++j){
+                if(field[i][j].isOpen()){
+                    ++countOpened;
+                } else if(field[i][j].isBomb()){
+                    ++countBomb;
                 }
             }
-            System.out.println();
         }
+        return ((countBomb + countOpened) == (height*width));
     }
 }
